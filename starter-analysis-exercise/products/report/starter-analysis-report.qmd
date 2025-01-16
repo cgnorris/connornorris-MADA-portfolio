@@ -1,8 +1,8 @@
 ---
 title: "Manuscript/Report Template for a Data Analysis Project"
 subtitle: ""
-author: Your Name
-date: today
+author: Connor Norris
+date: 1/16/2025
 format:
   html:
     toc: false
@@ -39,7 +39,8 @@ _Write a summary of your project._
 _Provide enough background on your topic that others can understand the why and how of your analysis_ 
 
 ## Description of data and data source
-_Describe what the data is, what it contains, where it is from, etc. Eventually this might be part of a methods section._
+
+The data contains information on fourteen individuals including height, weight, gender, education level, and the number of books that they have read within the past year.
 
 ## Questions/Hypotheses to be addressed
 _State the research questions you plan to answer with this analysis._
