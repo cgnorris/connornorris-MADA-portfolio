@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "YOURNAME Data Analysis Portfolio"
+  title: "Connor's Data Analysis Portfolio"
   navbar:
     left:
       - text: "About Me"
@@ -19,7 +19,7 @@ website:
         href: URL-TO-THIS-REPOSITORY-HERE        
 format:
   html:
-    theme: cosmo
+    theme: journal
     highlight: zenburn
     css: styles.css
     toc: FALSE
