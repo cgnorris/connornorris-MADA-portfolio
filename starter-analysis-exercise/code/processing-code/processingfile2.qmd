@@ -1,4 +1,68 @@
 ---
+title: "Data Processing for exampledata2"
+author: "Asmith"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+
+# Load the new data
+new_data <- read_excel("exampledata2.xlsx")
+print("exampledata2.xlsx.")
+
+# Inspect the data
+cat("Data Structure:\n")
+str(new_data)
+
+cat("First few rows of the data:\n")
+head(new_data)
+
+# Clean the data
+new_data <- new_data %>%
+  mutate(
+    Height = as.numeric(as.character(Height)),
+    Gender = toupper(Gender),
+    Gender = ifelse(Gender %in% c("M", "F", "O"), Gender, NA)
+  )
+
+# Handle missing values in critical columns
+cleaned_data <- new_data %>%
+  filter(!is.na(Height) & !is.na(Weight))
+
+# Save the cleaned data
+saveRDS(cleaned_data, file = "processeddata2.rds")
+print("Data cleaned and saved to processeddata2.rds.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
 title: "An example cleaning script"
 author: "Andreas Handel"
 date: "2023-01-03"
@@ -36,10 +100,6 @@ but it adds typing. You can do it either way.
 data_location <- here::here("starter-analysis-exercise","data","raw-data","exampledata.xlsx")
 rawdata <- readxl::read_excel(data_location)
 ```
-
-# Load the new data
-new_data <- read_excel("exampledata2.xlsx")
-print("exampledata2.xlsx")
 
 
 
