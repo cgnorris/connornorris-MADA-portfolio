@@ -37,6 +37,11 @@ data_location <- here::here("starter-analysis-exercise","data","raw-data","examp
 rawdata <- readxl::read_excel(data_location)
 ```
 
+# Load the new data
+new_data <- read_excel("exampledata2.xlsx")
+print("exampledata2.xlsx")
+
+
 
 # Check data
 
