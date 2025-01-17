@@ -1,4 +1,82 @@
 ---
+title: "Exploratory Data Analysis for exampledata2.xlsx"
+author: "Asmith"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Load  libraries
+library(here)  
+library(ggplot2)
+library(dplyr) 
+
+# Load the cleaned data
+data_location <- here::here("starter-analysis-exercise", "processeddata2.rds")
+mydata <- readRDS(data_location)
+
+# Inspect the data
+cat("Data structure:\n")
+str(mydata)
+
+# Boxplot: New Categorical Variable (e.g., Gender) vs Height
+p1 <- mydata %>%
+  ggplot(aes(x = Gender, y = Height, fill = Gender)) +
+  geom_boxplot() +
+  labs(
+    title = "Height by Gender",
+    x = "Gender",
+    y = "Height"
+  ) +
+  theme_minimal()
+
+# Save the boxplot
+boxplot_file <- here::here("starter-analysis-exercise", "results", "figures", "height-by-gender-boxplot.png")
+ggsave(filename = boxplot_file, plot = p1, width = 8, height = 6)
+
+# Scatterplot: Weight (x-axis) vs New Numerical Variable (e.g., BMI)
+p2 <- mydata %>%
+  ggplot(aes(x = Weight, y = BMI)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  geom_smooth(method = 'lm', se = FALSE, color = "red") +
+  labs(
+    title = "Scatterplot of Weight vs BMI",
+    x = "Weight",
+    y = "BMI"
+  ) +
+  theme_minimal()
+
+# Save the scatterplot
+scatterplot_file <- here::here("starter-analysis-exercise", "results", "figures", "weight-vs-bmi-scatterplot.png")
+ggsave(filename = scatterplot_file, plot = p2, width = 8, height = 6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
 title: "An example exploratory analysis script"
 author: "Andreas Handel"
 date: "10/28/2021"
