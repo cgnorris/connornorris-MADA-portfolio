@@ -11,7 +11,7 @@ library(here) #for data loading/saving
 
 #path to data
 #note the use of the here() package and not absolute paths
-data_location <- here::here("starter-analysis-exercise","data","processed-data","processeddata.rds")
+data_location <- here::here("starter-analysis-exercise","data","processed-data","processeddata2.rds")
 
 #load data. 
 mydata <- readRDS(data_location)
@@ -53,4 +53,18 @@ print(lmtable2)
 table_file2 = here("starter-analysis-exercise","results", "tables-files", "resulttable2.rds")
 saveRDS(lmtable2, file = table_file2)
 
+##########################
+#### Third model fit
+# Fit a linear model using height as the outcome and education and books read as predictors
+lm3 <- lm(Height ~ Education + Books_Read, mydata)
+
+#Place results into a dataframe
+lmtable3 <- broom::tidy(lm3)
+
+#Display results
+print(lmtable3)
+
+#Save fit results table
+table_file3 <- here("starter-analysis-exercise", "results", "tables-files", "resulttable3.rds")
+saveRDS(lmtable3, file = table_file3)
   
