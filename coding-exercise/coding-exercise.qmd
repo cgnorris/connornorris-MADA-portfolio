@@ -134,5 +134,103 @@ summary(lm1) #Present summary statistics of the linear model
 lm2 <- lm(life_expectancy ~ log(population), africadata_2000)
 summary(lm2) #Present summary statistics of the linear model
 ```
-
 From the linear model fitting life expectancy from infant mortality, I can conclude that infant mortality is a significant predictor of life expectancy (t = -6.594, p \< 0.001). From the linear model fitting life expectancy from log population size, I *cannot* conclude that population size is a significant predictor of life expectancy (t = -0.719, p = 0.476).
+
+
+#This part is contributed by Hope Grismer.
+#Exploratory analysis of the Breast Cancer Wisconsin Diagnostic Dataset from UCI Machine Learning Repository dataset
+```{r}
+#Use the help method to get a data description
+help(brca)
+
+#Get an overview of data structure
+str(brca)
+
+#Get a data summary
+summary(brca)
+
+#Determine the type of object that death probability data set is
+class(brca) 
+
+```
+
+```{r}
+#Data processing of brca data to only include the associated data of the malignant tumors
+
+#Create a subset of the data just malignant tumors, used this syntax instead of filter as it is a list not a data.frame
+
+# Extract indices of malignant tumors
+malignant_indices <- which(brca$y == "M")
+
+# Subset the features (x) based on the indices
+malignant_tumors_features <- brca$x[malignant_indices, ] 
+
+# View the first few rows of the malignant tumors' features
+head(malignant_tumors_features)
+
+```
+```{r}
+# Creating new objects to store the symmetry mean and radius mean data for the malignant tumors
+symmetry_mean_malignant <- malignant_tumors_features[, "symmetry_mean"]
+radius_mean_malignant <- malignant_tumors_features[, "radius_mean"]
+
+# View the first few rows of the extracted variables
+head(symmetry_mean_malignant)
+head(radius_mean_malignant)
+```
+```{r}
+# Create a data frame for plotting
+malignant_tumor_data <- data.frame(
+  radius_mean = radius_mean_malignant,
+  symmetry_mean = symmetry_mean_malignant
+)
+
+# Create the scatter plot
+ggplot(malignant_tumor_data, aes(x = radius_mean, y = symmetry_mean)) +
+  geom_point() +
+  labs(
+    x = "Radius Mean",
+    y = "Symmetry Mean",
+    title = "Symmetry Mean vs. Radius Mean for Malignant Tumors"
+  )
+```
+
+```{r}
+# Creating new objects to store the nucleus texture mean (standard deviation of grayscale values) and smoothness mean data for the malignant tumors 
+texture_mean_malignant <- malignant_tumors_features[, "texture_mean"]
+smoothness_mean_malignant <- malignant_tumors_features[, "smoothness_mean"]
+```
+
+```{r}
+# Create a data frame for plotting
+malignant_tumor_data <- data.frame(
+  texture_mean = texture_mean_malignant,
+  smoothness_mean = smoothness_mean_malignant
+)
+
+# Create the scatter plot
+ggplot(malignant_tumor_data, aes(x = texture_mean, y = smoothness_mean)) +
+  geom_point() +
+  labs(
+    x = "Texture Mean",
+    y = "Smoothness Mean",
+    title = "Texture Mean vs. Smoothness Mean for Malignant Tumors"
+  )
+```
+
+```{r}
+#Regression modeling for the brca data set
+
+#Fit a linear model predicting the mean nuclear symmetry from the mean nuclear radius of the malignant tumors  
+lm3 <- lm(symmetry_mean_malignant ~ radius_mean_malignant, data = malignant_tumor_data) 
+
+summary(lm3) #Present summary statistics of the linear model
+
+#Fit a linear model predicting nuclear texture in the form of standard deviation of grayscale from the nuclear smoothness (local variation in radius lengths)
+
+lm4 <- lm(texture_mean_malignant ~ smoothness_mean_malignant, data = malignant_tumor_data)
+
+#Present summary statistics of the linear model
+summary(lm4) 
+```
+From the linear model fitting mean nuclear symmetry from from the mean nuclear radius of the malignant tumors, I cannot conclude that mean nuclear symmetry is a significant predictor of mean nuclear radius (p-value: 0.2678). From the linear model fitting nuclear texture in the form of standard deviation of grayscale from the nuclear smoothness, I can conclude that nuclear texture is a significant predictor of nuclear smoothness (p-value: 0.03626)
