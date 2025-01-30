@@ -2,6 +2,8 @@
 title: "R Coding Exercise"
 ---
 
+## Exploratory Analysis of the Gapminder Dataset
+
 ```{r}
 #Load the dslabs package to get the gapminder dataset and other necessary packages
 library(dslabs)
@@ -134,11 +136,13 @@ summary(lm1) #Present summary statistics of the linear model
 lm2 <- lm(life_expectancy ~ log(population), africadata_2000)
 summary(lm2) #Present summary statistics of the linear model
 ```
+
 From the linear model fitting life expectancy from infant mortality, I can conclude that infant mortality is a significant predictor of life expectancy (t = -6.594, p \< 0.001). From the linear model fitting life expectancy from log population size, I *cannot* conclude that population size is a significant predictor of life expectancy (t = -0.719, p = 0.476).
 
+## Exploratory analysis of the Breast Cancer Wisconsin Diagnostic Dataset from UCI Machine Learning Repository dataset
 
-#This part is contributed by Hope Grismer.
-#Exploratory analysis of the Breast Cancer Wisconsin Diagnostic Dataset from UCI Machine Learning Repository dataset
+This part is contributed by Hope Grismer.
+
 ```{r}
 #Use the help method to get a data description
 help(brca)
@@ -169,6 +173,7 @@ malignant_tumors_features <- brca$x[malignant_indices, ]
 head(malignant_tumors_features)
 
 ```
+
 ```{r}
 # Creating new objects to store the symmetry mean and radius mean data for the malignant tumors
 symmetry_mean_malignant <- malignant_tumors_features[, "symmetry_mean"]
@@ -178,6 +183,7 @@ radius_mean_malignant <- malignant_tumors_features[, "radius_mean"]
 head(symmetry_mean_malignant)
 head(radius_mean_malignant)
 ```
+
 ```{r}
 # Create a data frame for plotting
 malignant_tumor_data <- data.frame(
@@ -233,4 +239,5 @@ lm4 <- lm(texture_mean_malignant ~ smoothness_mean_malignant, data = malignant_t
 #Present summary statistics of the linear model
 summary(lm4) 
 ```
+
 From the linear model fitting mean nuclear symmetry from from the mean nuclear radius of the malignant tumors, I cannot conclude that mean nuclear symmetry is a significant predictor of mean nuclear radius (p-value: 0.2678). From the linear model fitting nuclear texture in the form of standard deviation of grayscale from the nuclear smoothness, I can conclude that nuclear texture is a significant predictor of nuclear smoothness (p-value: 0.03626)

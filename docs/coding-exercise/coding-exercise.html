@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.6.40">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -69,10 +69,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-8b20df304ae43519df5d458fcc8598a6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -182,6 +182,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
+<section id="exploratory-analysis-of-the-gapminder-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="exploratory-analysis-of-the-gapminder-dataset">Exploratory Analysis of the Gapminder Dataset</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Load the dslabs package to get the gapminder dataset and other necessary packages</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dslabs)</span>
@@ -514,7 +516,10 @@ F-statistic: 0.517 on 1 and 49 DF,  p-value: 0.4755</code></pre>
 </div>
 </div>
 <p>From the linear model fitting life expectancy from infant mortality, I can conclude that infant mortality is a significant predictor of life expectancy (t = -6.594, p &lt; 0.001). From the linear model fitting life expectancy from log population size, I <em>cannot</em> conclude that population size is a significant predictor of life expectancy (t = -0.719, p = 0.476).</p>
-<p>#This part is contributed by Hope Grismer. #Exploratory analysis of the Breast Cancer Wisconsin Diagnostic Dataset from UCI Machine Learning Repository dataset</p>
+</section>
+<section id="exploratory-analysis-of-the-breast-cancer-wisconsin-diagnostic-dataset-from-uci-machine-learning-repository-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="exploratory-analysis-of-the-breast-cancer-wisconsin-diagnostic-dataset-from-uci-machine-learning-repository-dataset">Exploratory analysis of the Breast Cancer Wisconsin Diagnostic Dataset from UCI Machine Learning Repository dataset</h2>
+<p>This part is contributed by Hope Grismer.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Use the help method to get a data description</span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">help</span>(brca)</span>
@@ -732,6 +737,7 @@ F-statistic: 4.442 on 1 and 210 DF,  p-value: 0.03626</code></pre>
 <p>From the linear model fitting mean nuclear symmetry from from the mean nuclear radius of the malignant tumors, I cannot conclude that mean nuclear symmetry is a significant predictor of mean nuclear radius (p-value: 0.2678). From the linear model fitting nuclear texture in the form of standard deviation of grayscale from the nuclear smoothness, I can conclude that nuclear texture is a significant predictor of nuclear smoothness (p-value: 0.03626)</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -816,8 +822,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -928,7 +932,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {
