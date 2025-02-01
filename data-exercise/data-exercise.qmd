@@ -1,0 +1,205 @@
+---
+title: "Synthetic Data Exercise"
+---
+
+For this exercise, I will write code to create a synthetic data set describing regional case rates of vector-borne disease as well as data on the climate of each reported region and then do an initial exploratory analysis on that data.
+
+```{r}
+#Load required packages
+library(dplyr)
+library(purrr)
+library(lubridate)
+library(ggplot2)
+library(here)
+library(MASS)
+library(pscl)
+library(boot)
+library(psych)
+library(car)
+```
+
+```{r}
+#Set seed for reproducibility
+set.seed(123)
+
+#Set the number of observations to generate
+n_regions <- 200
+```
+
+## Generating Data
+
+```{r}
+#Create an empty data frame
+region_data <- data.frame(
+  RegionID = numeric(n_regions),
+  Type = factor(character(n_regions), 4),
+  Temperature = numeric(n_regions),
+  Humidity = numeric(n_regions),
+  Rainfall = numeric(n_regions),
+  Mosquito_Density = integer(n_regions),
+  Sanitation_Quality = factor(numeric(n_regions), 5, ordered = TRUE),
+  Population_Density = integer(n_regions),
+  Access_Clean_Water = factor(character(n_regions), 2),
+  Vector_Borne_Cases = integer(n_regions)
+)
+
+#Fill each variable
+#Variable 1: Region ID
+region_data$RegionID <- 1:n_regions
+
+#Variable 2: Type (factor with four levels)
+region_data$Type <- sample(c("Coastal", "Urban", "Rural", "Mountainous"), n_regions, replace = TRUE)
+
+#Climate-based variables (3-5): vary by region type
+#Variable 3: Temperature (numeric, degrees Celcius)
+region_data$Temperature <- round(rnorm(n_regions, 
+                                       mean = ifelse(region_data$Type == "Coastal", 30, 
+                                              ifelse(region_data$Type == "Urban", 25,
+                                              ifelse(region_data$Type == "Rural", 28, 18))),
+                                       sd = 3), 1)
+
+#Variable 4: Humidity (numeric, percentage)
+region_data$Humidity <- round(rnorm(n_regions, 
+                                    mean = ifelse(region_data$Type == "Coastal", 80,
+                                           ifelse(region_data$Type == "Urban", 60,
+                                           ifelse(region_data$Type == "Rural", 70, 50))),
+                                    sd = 5), 0)
+
+#Variable 5: Rainfall (numeric, mm)
+region_data$Rainfall <- round(rnorm(n_regions,
+                                    mean = ifelse(region_data$Type == "Coastal", 300,
+                                           ifelse(region_data$Type == "Urban", 100,
+                                           ifelse(region_data$Type == "Rural", 200, 50))),
+                                    sd = 50), 1) %>%
+  pmax(0, region_data$Rainfall) #No negatives
+
+#Variable 6: Mosquito Population Density (integer)
+#Increases with temperature, humidity, and rainfall
+region_data$Mosquito_Density <- round(500 + 
+    50 * (region_data$Temperature - 15) +
+    20 * (region_data$Humidity - 40) +
+    0.5 * region_data$Rainfall +
+    rnorm(n_regions, mean = 0, sd = 5000)) %>%
+  pmax(0, region_data$Mosquito_Density) #No negatives
+
+#Variable 7: Sanitation Quality (ordered factor 1-5, 1 is worst quality)
+#Slightly higher in urban areas
+region_data$Sanitation_Quality <- ifelse(region_data$Type == "Urban",
+                                         sample(2:5, n_regions, replace = T, 
+                                                prob = c(0.05, 0.3, 0.4, 0.25)),
+                                         sample(1:4, n_regions, replace = T,
+                                                prob = c(0.2, 0.3, 0.3, 0.2)))
+
+#Variable 8: Population Density (integer)
+#Higher in urban areas
+region_data$Population_Density <- round(rnorm(n_regions,
+                                              mean = ifelse(region_data$Type == "Urban", 5000,
+                                                     ifelse(region_data$Type == "Coastal", 2000,
+                                                     ifelse(region_data$Type == "Rural", 500, 300))),
+                                              sd = 800), 0) %>%
+  pmax(50, region_data$Population_Density)
+
+#Variable 9: Access to Clean Water (yes/no)
+#Higher in urban/coastal areas
+region_data$Access_Clean_Water <- ifelse(region_data$Type == "Urban" | region_data$Type == "Coastal",
+                                         sample(c("Yes", "No"), n_regions, replace = T,
+                                                prob = c(0.9, 0.1)),
+                                         sample(c("Yes", "No"), n_regions, replace = T,
+                                                prob = c(0.7, 0.3)))
+
+#Variable 10: Vector-Borne Disease Counts
+#Increases with mosquito density, humidity, and temperature
+region_data$Vector_Borne_Cases <- round(0.01 * region_data$Mosquito_Density +
+                                        2.5 * region_data$Temperature +
+                                        1.5 * region_data$Humidity + 
+                                        0.05 * region_data$Population_Density +
+                                        rnorm(n_regions, mean = 0, sd = 25)) %>%
+  pmax(0, region_data$Vector_Borne_Cases) #No negative cases
+```
+
+## Exploring the Data
+
+```{r}
+#Determine the type of object that the data is
+class(region_data)
+
+#Get an overview of data structure
+str(region_data)
+
+#Get a data summary
+summary(region_data)
+```
+
+The code above created a data frame with 200 observations with 10 variables. The first variable assigns a unique identifier to each region represented in the dataset. The second variable is a character factor with four levels that describes the type of region listed: coastal, urban, rural, or mountainous. The next three variables are all climate based, describing the average temperature, humidity, and rainfall in each region. The sixth and eighth variables describe the population densities of mosquitoes and people in each region, respectively. The seventh variable is an ordered five-level factor describing the sanitation infrastructure quality of each region, with '1' indicating the poorest quality and '5' indicating the highest quality. The ninth variable is a dichotomous variable indicating whether or not those in the region have access to clean water. The tenth variable indicates the number of vector-borne disease cases in each region.
+
+## Plotting
+
+The following is a scatterplot matrix showing the relationships between the numerical variables in this dataset.
+```{r}
+reduced_data <- region_data %>%
+  dplyr::select(Temperature, Humidity, Rainfall, Mosquito_Density, Sanitation_Quality, Population_Density, Vector_Borne_Cases)
+scatterplotMatrix(reduced_data)
+```
+The following are boxplots comparing the relationships between the type of region and climate-related varaibles.
+
+```{r}
+#Temperature by region type
+ggplot(data = region_data, aes(x = Type, y = Temperature)) +
+  geom_boxplot() +
+  labs(
+    title = "Temperature ranges by region type",
+    x = "Region type",
+    y = "Temperature (°C)") + 
+  theme_classic()
+
+#Humidity by region type
+ggplot(data = region_data, aes(x = Type, y = Humidity)) +
+  geom_boxplot() +
+  labs(
+    title = "Humidity ranges by region type",
+    x = "Region type",
+    y = "Humidity (%)") + 
+  theme_classic()
+
+#Rainfall by region type
+ggplot(data = region_data, aes(x = Type, y = Rainfall)) +
+  geom_boxplot() +
+  labs(
+    title = "Rainfall ranges by region type",
+    x = "Region type",
+    y = "Rainfall (mm)") + 
+  theme_classic()
+```
+
+## Modeling Case Counts
+
+Since this data depicts count data, Poisson regression or other similar models should be used.
+
+```{r}
+attach(region_data)
+
+#Check for overdispersion of data
+mean(Vector_Borne_Cases) - var(Vector_Borne_Cases)
+
+#Poisson model for vector-borne cases
+lm1 <- glm(Vector_Borne_Cases ~ Temperature + Humidity + Rainfall + Sanitation_Quality + Mosquito_Density + Population_Density + Access_Clean_Water, family = "poisson")
+
+summary(lm1)
+```
+
+The variance of the vector-borne cases being greater than the mean of the vector-borne cases indicates that this data is overdispersed. In addition, certain variables in the Poisson model are significant even though there is not much biological rational for them to be significant. For example, I would expect access to clean water to only have much of an impact on waterborne disease cases, but it is significant in the Poisson model for vector-borne disease cases. Switching to a negative binomial model should better account for the problems present in the Poisson model.
+
+```{r}
+#Fit a negative binomial model for vector-borne disease counts
+lm2 <- glm.nb(Vector_Borne_Cases ~ Type + Temperature + Humidity + Rainfall + Sanitation_Quality + Mosquito_Density + Population_Density + Access_Clean_Water)
+summary(lm2)
+
+#Stepwise removal of non-significant terms
+step(lm2, direction = "backward")
+
+#Final model for vector-borne cases
+vector_model <- glm.nb(Vector_Borne_Cases ~ Temperature + Humidity + Mosquito_Density + Population_Density)
+summary(vector_model)
+```
+
+The AIC value of the full negative binomial model was much lower than the AIC value for the full Poisson model, indicating that the negative binomial model was a better fit. A backwards stepwise regression with this model confirmed that temperature, humidity, mosquito density, and popularion density were significant predictors in this model for this data.
