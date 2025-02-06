@@ -16,52 +16,54 @@ library(janitor)
 data_path <- here("cdc-data-exercise", "BEAM_Dashboard_-_Report_Data_20250205.csv")
 cdc_data <- read_csv(data_path)
 
-str(cdc_data)
-summary(cdc_data)
 ```
 
 ```{r}
 #Data cleaning
 
-#Clean column names
 cdc_data <- cdc_data %>%
-  clean_names()
+  clean_names() %>% #Clean column names
+  filter(pathogen == "Salmonella") %>% #Filter for just Salmonella
+  mutate(across(c(state, source, pathogen, serotype_species, year, month), as.factor)) %>% #Convert variables to factors
+  filter(!is.na(state)) %>% #Remove NAs from 'state'
+  mutate(across(where(is.numeric), ~replace_na(., 0))) #Replace all NAs in numeric variables with 0
 
-#Convert character variables to factors
-cdc_data <- cdc_data %>%
-  mutate(across(c(state, source, pathogen, serotype_species), as.factor))
-
-#Convert percentage variable 
 summary(cdc_data)
 ```
 
 ```{r}
-# Convert percentage to numeric
-if("% isolates with clinically important antimicrobial resistance" %in% names(data)) {
-  data <- data %>%
-    mutate(`% isolates with clinically important antimicrobial resistance` = as.numeric(gsub("%", "", `% isolates with clinically important antimicrobial resistance`)) / 100)
-}
+#Summary statistics for numerical variables
+summary_stats <- cdc_data %>%
+  summarise(across(where(is.numeric), list(mean = ~ mean(.), 
+                                           sd = ~ sd(.), 
+                                           min = ~ min(.), 
+                                           max = ~ max(.), 
+                                           median = ~ median(.)
+                                           ), .names = "{col}_{fn}"))
 
-# Handle missing values (Replace with 0)
-data[is.na(data)] <- 0
+#Reshape summary statistics to a table format
+summary_stats_table <- summary_stats %>%
+  pivot_longer(cols = everything(), names_to = "variable_stat", values_to = "value") %>%
+  separate(variable_stat, into = c("variable", "stat"), sep = "_(?=[^_]+$)")
 
-# Summary statistics for numerical variables
-summary_stats <- data %>%
-  summarise(across(where(is.numeric), list(mean = mean, sd = sd, min = min, max = max, median = median), na.rm = TRUE))
-print(summary_stats)
+#Spread statistics into columns
+summary_stats_table <- summary_stats_table %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+print(summary_stats_table)
 
 # Save summary statistics as CSV
 write.csv(summary_stats, "summary_statistics.csv", row.names = FALSE)
 
 # Distribution plots for numerical variables
-num_vars <- names(data)[sapply(data, is.numeric)]
+num_vars <- names(cdc_data)[sapply(cdc_data, is.numeric)]
 for (var in num_vars) {
-  ggplot(data, aes_string(var)) +
+  ggplot(cdc_data, aes(var)) +
     geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
-    geom_density(aes(y = ..density.. * max(..count..)), color = "red", size = 1) +
-    ggtitle(paste("Distribution of", var)) +
+    geom_density(aes(y = after_stat(density) * max(after_stat(count))), color = "red", linewidth = 1) +
+    ggtitle(paste("Distribution of ", var)) +
     theme_minimal() +
-    ggsave(paste0("distribution_", var, ".png"))
+    ggsave(paste("distribution_", var, ".png"))
 }
 
 # Frequency tables for categorical variables
