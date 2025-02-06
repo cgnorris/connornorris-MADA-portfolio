@@ -1,0 +1,100 @@
+---
+title: "cdc-data-exercise"
+editor: visual
+---
+
+```{r}
+#Load required packages
+library(tidyverse)
+library(here)
+library(ggplot2)
+library(janitor)
+```
+
+```{r}
+#Load dataset
+data_path <- here("cdc-data-exercise", "BEAM_Dashboard_-_Report_Data_20250205.csv")
+cdc_data <- read_csv(data_path)
+
+str(cdc_data)
+summary(cdc_data)
+```
+
+```{r}
+#Data cleaning
+
+#Clean column names
+cdc_data <- cdc_data %>%
+  clean_names()
+
+#Convert character variables to factors
+cdc_data <- cdc_data %>%
+  mutate(across(c(state, source, pathogen, serotype_species), as.factor))
+
+#Convert percentage variable 
+summary(cdc_data)
+```
+
+```{r}
+# Convert percentage to numeric
+if("% isolates with clinically important antimicrobial resistance" %in% names(data)) {
+  data <- data %>%
+    mutate(`% isolates with clinically important antimicrobial resistance` = as.numeric(gsub("%", "", `% isolates with clinically important antimicrobial resistance`)) / 100)
+}
+
+# Handle missing values (Replace with 0)
+data[is.na(data)] <- 0
+
+# Summary statistics for numerical variables
+summary_stats <- data %>%
+  summarise(across(where(is.numeric), list(mean = mean, sd = sd, min = min, max = max, median = median), na.rm = TRUE))
+print(summary_stats)
+
+# Save summary statistics as CSV
+write.csv(summary_stats, "summary_statistics.csv", row.names = FALSE)
+
+# Distribution plots for numerical variables
+num_vars <- names(data)[sapply(data, is.numeric)]
+for (var in num_vars) {
+  ggplot(data, aes_string(var)) +
+    geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+    geom_density(aes(y = ..density.. * max(..count..)), color = "red", size = 1) +
+    ggtitle(paste("Distribution of", var)) +
+    theme_minimal() +
+    ggsave(paste0("distribution_", var, ".png"))
+}
+
+# Frequency tables for categorical variables
+cat_vars <- names(data)[sapply(data, is.factor)]
+for (var in cat_vars) {
+  cat_table <- data %>%
+    count(!!sym(var)) %>%
+    mutate(percentage = n / sum(n) * 100)
+  print(cat_table)
+  
+  # Save categorical summaries as CSV
+  write.csv(cat_table, paste0("summary_", var, ".csv"), row.names = FALSE)
+  
+  # Bar plot
+  ggplot(cat_table, aes_string(x = var, y = "percentage", fill = var)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    ggtitle(paste("Proportion of", var)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggsave(paste0("barplot_", var, ".png"))
+}
+
+# Correlation matrix for numerical variables
+cor_matrix <- cor(data %>% select(where(is.numeric)), use = "pairwise.complete.obs")
+print(cor_matrix)
+
+# Save correlation matrix as CSV
+write.csv(cor_matrix, "correlation_matrix.csv", row.names = TRUE)
+
+# Heatmap of correlations
+library(ggcorrplot)
+ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower", lab = TRUE) +
+  ggtitle("Correlation Heatmap") +
+  ggsave("correlation_heatmap.png")
+
+```
