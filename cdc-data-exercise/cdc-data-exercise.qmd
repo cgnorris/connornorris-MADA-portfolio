@@ -1,7 +1,11 @@
 ---
-title: "cdc-data-exercise"
+title: "CDC Data Exercise"
 editor: visual
 ---
+
+## Part 1
+
+The data that I have chosen for this exercise is the NWSS Public SARS-CoV-2 Wastewater Metric Data from the CDC. The link to the website can be found [here](https://data.cdc.gov/Public-Health-Surveillance/NWSS-Public-SARS-CoV-2-Wastewater-Metric-Data/2ew6-ywp6/about_data). ChatGPT and GitHub Copilot were both used to fine-tune the code below.
 
 ```{r}
 #Load required packages
@@ -10,93 +14,152 @@ library(here)
 library(ggplot2)
 library(janitor)
 ```
-
+This dataset was initially too big to fit within Git's file size guidelines. To reduce file size, I cut some redundant variables as well as restricted the data to only include observations from 2023 and 2024.
 ```{r}
+#Code to reduce data to acceptable size for Git
+#data_path <- here("cdc-data-exercise", "NWSS_Public_SARS-CoV-2_Wastewater_Metric_Data_20250206.csv")
+#ww <- read_csv(data_path)
+#ww <- ww %>%
+  #select(!c(key_plot_id, sample_location_specify, reporting_jurisdiction)) %>% 
+  #filter(date_start >= as.Date("2023-01-01") & date_start <= as.Date("2024-12-31"))
+#write.csv(ww, 'wastewater.csv', row.names = FALSE)
+
 #Load dataset
-data_path <- here("cdc-data-exercise", "BEAM_Dashboard_-_Report_Data_20250205.csv")
-cdc_data <- read_csv(data_path)
+data_path <- here("cdc-data-exercise", "wastewater.csv")
+df <- read_csv(data_path)
+
 
 ```
 
 ```{r}
 #Data cleaning
 
-cdc_data <- cdc_data %>%
-  clean_names() %>% #Clean column names
-  filter(pathogen == "Salmonella") %>% #Filter for just Salmonella
-  mutate(across(c(state, source, pathogen, serotype_species, year, month), as.factor)) %>% #Convert variables to factors
-  filter(!is.na(state)) %>% #Remove NAs from 'state'
-  mutate(across(where(is.numeric), ~replace_na(., 0))) #Replace all NAs in numeric variables with 0
+#Convert dates from characters to Date type
+df <- df %>%
+  mutate(
+    date_start = as.Date(date_start, format="%Y-%m-%d"),
+    date_end = as.Date(date_end, format="%Y-%m-%d"),
+    first_sample_date = as.Date(first_sample_date, format="%Y-%m-%d")
+  )
 
-summary(cdc_data)
+#Handle missing values
+df <- df %>%
+  replace_na(list(ptc_15d = 0, detect_prop_15d = 0, percentile = 0))
+
+#Convert categorical variables to factors
+df <- df %>%
+  mutate(
+    wwtp_jurisdiction = as.factor(wwtp_jurisdiction),
+    sample_location = as.factor(sample_location),
+    county_names = as.factor(county_names),
+    county_fips = as.factor(county_fips),
+    sampling_prior = as.factor(sampling_prior)
+  )
+
+str(df)
+summary(df)
 ```
 
 ```{r}
-#Summary statistics for numerical variables
-summary_stats <- cdc_data %>%
-  summarise(across(where(is.numeric), list(mean = ~ mean(.), 
-                                           sd = ~ sd(.), 
-                                           min = ~ min(.), 
-                                           max = ~ max(.), 
-                                           median = ~ median(.)
-                                           ), .names = "{col}_{fn}"))
+#Exploratory Data Analysis
 
-#Reshape summary statistics to a table format
-summary_stats_table <- summary_stats %>%
-  pivot_longer(cols = everything(), names_to = "variable_stat", values_to = "value") %>%
-  separate(variable_stat, into = c("variable", "stat"), sep = "_(?=[^_]+$)")
+#Names of categorical variables
+categorical_vars <- c("wwtp_jurisdiction", "sample_location", "county_names", "county_fips", "sampling_prior")
 
-#Spread statistics into columns
-summary_stats_table <- summary_stats_table %>%
-  pivot_wider(names_from = stat, values_from = value)
-
-print(summary_stats_table)
-
-# Save summary statistics as CSV
-write.csv(summary_stats, "summary_statistics.csv", row.names = FALSE)
-
-# Distribution plots for numerical variables
-num_vars <- names(cdc_data)[sapply(cdc_data, is.numeric)]
-for (var in num_vars) {
-  ggplot(cdc_data, aes(var)) +
-    geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
-    geom_density(aes(y = after_stat(density) * max(after_stat(count))), color = "red", linewidth = 1) +
-    ggtitle(paste("Distribution of ", var)) +
-    theme_minimal() +
-    ggsave(paste("distribution_", var, ".png"))
-}
-
-# Frequency tables for categorical variables
-cat_vars <- names(data)[sapply(data, is.factor)]
-for (var in cat_vars) {
-  cat_table <- data %>%
+#Summary of categorical variables
+for (var in categorical_vars) {
+  summary_table <- df %>%
     count(!!sym(var)) %>%
-    mutate(percentage = n / sum(n) * 100)
-  print(cat_table)
+    mutate(Percent = n / sum(n) * 100)
   
-  # Save categorical summaries as CSV
-  write.csv(cat_table, paste0("summary_", var, ".csv"), row.names = FALSE)
-  
-  # Bar plot
-  ggplot(cat_table, aes_string(x = var, y = "percentage", fill = var)) +
-    geom_bar(stat = "identity") +
-    theme_minimal() +
-    ggtitle(paste("Proportion of", var)) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    ggsave(paste0("barplot_", var, ".png"))
+  write_csv(summary_table, paste0(var, "_summary.csv"))
 }
 
-# Correlation matrix for numerical variables
-cor_matrix <- cor(data %>% select(where(is.numeric)), use = "pairwise.complete.obs")
-print(cor_matrix)
+#Names of continuous variables
+continuous_vars <- df %>%
+  select(population_served, ptc_15d, detect_prop_15d, percentile)
 
-# Save correlation matrix as CSV
-write.csv(cor_matrix, "correlation_matrix.csv", row.names = TRUE)
+for (var in names(continuous_vars)) {
+  summary_table <- continuous_vars %>%
+    summarise(
+      Variable = var,
+      Mean = mean(.data[[var]], na.rm = TRUE),
+      SD = sd(.data[[var]], na.rm = TRUE),
+      Min = min(.data[[var]], na.rm = TRUE),
+      Max = max(.data[[var]], na.rm = TRUE),
+      Median = median(.data[[var]], na.rm = TRUE)
+    )
+  write_csv(summary_table, paste0(var, "_summary.csv"))
+}
 
-# Heatmap of correlations
-library(ggcorrplot)
-ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower", lab = TRUE) +
-  ggtitle("Correlation Heatmap") +
-  ggsave("correlation_heatmap.png")
+detect_prop_15d_summary <- read_csv("detect_prop_15d_summary.csv")
+percentile_summary <- read_csv("percentile_summary.csv")
+population_served_summary <- read_csv("population_served_summary.csv")
+ptc_15d_summary <- read_csv("ptc_15d_summary.csv")
 
+continuous_summary <- rbind(detect_prop_15d_summary, percentile_summary, population_served_summary, ptc_15d_summary)
+
+write_csv(continuous_summary, "continuous_summary.csv")
+
+summary(df$ptc_15d)
+```
+
+```{r}
+#Plot distributions of continuous variables
+ggplot(df, aes(x = population_served)) +
+  geom_histogram(binwidth = 1000, fill = "blue", color = "blue") +
+  labs(title = "Distribution of Population Served", x = "Population Served", y = "Frequency")
+
+ggplot(df, aes(x = ptc_15d)) +
+  geom_histogram(fill = "green", color = "green") +
+  xlim(-100, 100) +
+  labs(title = "Distribution of PTC 15d", x = "PTC 15d", y = "Frequency")
+
+ggplot(df, aes(x = detect_prop_15d)) +
+  geom_histogram(binwidth = 10, fill = "red", color = "red") +
+  labs(title = "Distribution of Detect Prop 15d", x = "Detect Prop 15d", y = "Frequency")
+
+ggplot(df, aes(x = percentile)) +
+  geom_histogram(binwidth = 5, fill = "purple", color = "purple") +
+  labs(title = "Distribution of Percentile", x = "Percentile", y = "Frequency")
+
+#Save plots
+ggsave("population_served_distribution.png")
+ggsave("ptc_15d_distribution.png")
+ggsave("detect_prop_15d_distribution.png")
+ggsave("percentile_distribution.png")
+
+#Plot distributions of categorical variables
+ggplot(df, aes(x = wwtp_jurisdiction)) +
+  geom_bar(fill = "blue") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(title = "Distribution of wwtp_jurisdiction",
+       x = "wwtp_jurisdiction",
+       y = "count")
+
+ggplot(filter(df, wwtp_jurisdiction == "Georgia"), aes(x = county_names)) +
+  geom_bar(fill = "green") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(title = "Distribution of counties in Georgia",
+       x = "counties",
+       y = "count")
+
+ggplot(df, aes(x = sample_location)) +
+  geom_bar(fill = "red") +
+  theme(axis.text.x = element_text(angle = 0.5, hjust = 0.5)) +
+  labs(title = "Distribution of sample_location",
+       x = "sample location",
+       y = "count")
+
+ggplot(df, aes(x = sampling_prior)) +
+  geom_bar(fill = "purple") +
+  theme(axis.text.x = element_text(angle = 0.5, hjust = 0.5)) +
+  labs(title = "Distribution of sampling_prior",
+       x = "prior sampling",
+       y = "count")
+
+ggsave("jurisdiction_distribution.png")
+ggsave("georgia_counties_distribution.png")
+ggsave("sample_location_distribution.png")
+ggsave("sampling_prior_distribution.png")
 ```

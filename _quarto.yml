@@ -16,6 +16,8 @@ website:
             file: coding-exercise/coding-exercise.qmd
           - text: "Synthetic Data Exercise"
             file: data-exercise/data-exercise.qmd
+          - text: "CDC Data Processing Exercise"
+            file: cdc-data-exercise/cdc-data-exercise.qmd
     right:
       - icon: github 
         href: https://github.com/cgnorris/connornorris-MADA-portfolio      
