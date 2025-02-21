@@ -18,6 +18,8 @@ website:
             file: data-exercise/data-exercise.qmd
           - text: "CDC Data Processing Exercise"
             file: cdc-data-exercise/cdc-data-exercise.qmd
+          - text: "Data Presentation Exercise"
+            file: presentation-exercise/presentation-exercise.qmd
     right:
       - icon: github 
         href: https://github.com/cgnorris/connornorris-MADA-portfolio      
