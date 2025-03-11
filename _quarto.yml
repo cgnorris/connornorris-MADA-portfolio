@@ -20,6 +20,8 @@ website:
             file: cdc-data-exercise/cdc-data-exercise.qmd
           - text: "Data Presentation Exercise"
             file: presentation-exercise/presentation-exercise.qmd
+          - text: "Model Fitting Exercise"
+            file: fitting-exercise/fitting-exercise.qmd
     right:
       - icon: github 
         href: https://github.com/cgnorris/connornorris-MADA-portfolio      

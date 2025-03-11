@@ -5,7 +5,7 @@ editor: visual
 
 For this exercise, I will work with data on the drug candidate Mavoglurant and practice modeling in the `tidymodels` framework.
 
-```{r, echo = FALSE}
+```{r, message = FALSE}
 #Load required packages
 library(tidymodels)
 library(tidyverse)
