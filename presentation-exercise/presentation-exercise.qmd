@@ -5,7 +5,7 @@ format: html
 
 # Data Presentation Exercise: We’ve Never Seen Congressional Resignations Like This Before
 
-For this exercise, I will find publicly available data from news sources and try to replicate one of their figures or tables. This article from ABC News 538 discusses trends in the reasons behind members of congress' resignations, and can be found at the following [link]('https://fivethirtyeight.com/features/more-people-are-resigning-from-congress-than-at-any-time-in-recent-history/').
+For this exercise, I will find publicly available data from news sources and try to replicate one of their figures or tables. This article from ABC News 538 discusses trends in the reasons behind members of congress' resignations, and can be found at the following [link](https://fivethirtyeight.com/features/more-people-are-resigning-from-congress-than-at-any-time-in-recent-history/).
 
 ## Replicating a Figure
 
