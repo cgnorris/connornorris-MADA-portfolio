@@ -3,6 +3,8 @@ title: "Model Fitting Exercise"
 editor: visual
 ---
 
+# Model Fitting
+
 For this exercise, I will work with data on the drug candidate Mavoglurant and practice modeling in the `tidymodels` framework.
 
 ```{r, message = FALSE}
@@ -16,6 +18,9 @@ library(kableExtra)
 ```
 
 ```{r, message = FALSE}
+#Define random seed value
+rngseed = 1234
+
 #Load Mavoglurant data
 data_path <- here("fitting-exercise", "Mavoglurant_A2121_nmpk.csv")
 data <- read_csv(data_path)
@@ -235,3 +240,152 @@ print(paste("ROC-AUC for model fitting sex from all predictors:", round(m4_roc_a
 ```
 
 The models that used all available predictors had a better fit than the models that used just dose as a predictor.
+
+# Model Improvement
+
+For this exercise, I will expand upon previous work to fit simple models and do additional performance assessment.
+
+## Further Data Wrangling
+
+```{r}
+#Remove race from the dataset
+df <- select(df, -RACE)
+
+#Confirm sucessful removal
+summary(df)
+```
+
+```{r}
+#Set random seed for data splitting
+set.seed(rngseed)
+
+#Split data into a 75% training set and a 25% testing set
+data_split <- initial_split(df, prop = 3/4)
+
+#Set data frames for the training and testing sets
+train <- training(data_split)
+test <- testing(data_split)
+```
+
+## New Model Fitting
+
+```{r}
+#### Fit new linear models using training data ####
+#Fit a model predicting Y from DOSE (model 1)
+dose_Y_fit <- lm_model %>% fit(Y ~ DOSE, data = train)
+
+#Fit a model predicting Y from all other predictors (model 2)
+all_Y_fit <- lm_model %>% fit(Y ~ ., data = train)
+```
+
+## Model Performance Assessment 1
+
+```{r}
+#Calculate RMSE and R-squared for both models using training data
+metrics1 <- predict(dose_Y_fit, train) %>%
+  bind_cols(train) %>%
+  metrics(truth = Y, estimate = .pred)
+
+metrics2 <- predict(all_Y_fit, train) %>%
+  bind_cols(train) %>%
+  metrics(truth = Y, estimate = .pred)
+
+#Print metrics for both models
+print(metrics1)
+print(metrics2)
+
+#Fit a null model using the training data
+null_mod <- null_model() %>%
+  set_engine("parsnip") %>%
+  set_mode("regression")
+
+null_fit <- 
+  null_mod %>%
+  fit(Y ~ 1, data = train)
+
+#Compute RMSE and R-squared for a null model
+metrics_null <- predict(null_fit, train) %>%
+  bind_cols(train) %>%
+  metrics(truth = Y, estimate = .pred)
+
+#Print metrics for the null model
+print(metrics_null)
+```
+
+## Model Performance Assessment 2
+
+```{r, warning=FALSE}
+#### Evaluate the model using cross-validation (CV) with the training data ####
+#Reset random seed
+set.seed(rngseed)
+
+#Set CV folds (n = 10)
+folds <- vfold_cv(train, v = 10)
+
+#Define workflow for CV
+cv_wf <-
+  workflow() %>%
+  add_model(lm_model)
+
+#Fit a model predicting Y from dose using the CV folds
+model1_fit_cv <- 
+  cv_wf %>%
+  add_formula(Y ~ DOSE) %>%
+  fit_resamples(folds)
+
+#Fit a model predicting Y from all predictors using the CV folds
+model2_fit_cv <-
+  cv_wf %>%
+  add_formula(Y ~ .) %>%
+  fit_resamples(folds)
+
+#Create a recipe with only the outcome (removing all predictors for a null model)
+null_recipe <- recipe(Y ~ 1, data = train)
+
+#Define a new workflow for a null model
+cv_wf_null <- 
+  workflow() %>%
+  add_model(null_mod) %>%
+  add_recipe(null_recipe)
+
+#Fit the null model using CV folds
+null_fit_cv <- fit_resamples(cv_wf_null, folds)
+
+#Display metrics of all models
+collect_metrics(model1_fit_cv)
+collect_metrics(model2_fit_cv)
+collect_metrics(null_fit_cv)
+```
+
+After completing the ten-fold cross-validation, the null model performed largely the same, and the model fitting Y from all predictors performed better than the model fitting Y from just dose. However, the difference in performance between the two non-null models was less pronounced.
+
+```{r}
+#### Re-running CV using a new seed ####
+#Reset seed
+set.seed(22)
+
+#Set CV folds (n = 10)
+folds <- vfold_cv(train, v = 10)
+
+#Fit a model predicting Y from dose using the CV folds
+model1_fit_cv <- 
+  cv_wf %>%
+  add_formula(Y ~ DOSE) %>%
+  fit_resamples(folds)
+
+#Fit a model predicting Y from all predictors using the CV folds
+model2_fit_cv <-
+  cv_wf %>%
+  add_formula(Y ~ .) %>%
+  fit_resamples(folds)
+
+#Fit the null model using CV folds
+null_fit_cv <- fit_resamples(cv_wf_null, folds)
+
+#Display metrics of all models
+collect_metrics(model1_fit_cv)
+collect_metrics(model2_fit_cv)
+collect_metrics(null_fit_cv)
+```
+
+With a new seed, the mean RMSE values of the models predicting Y from all predictors and from just dose were about the same. However, the standard errors of both metrics were lower, and the standard error for the model with dose as the only predictor was slightly lower than the standard error of the model with all predictors.
