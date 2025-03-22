@@ -1,0 +1,33 @@
+project: 
+  type: website
+  output-dir: docs
+
+website:
+  title: "Connor's Data Analysis Portfolio"
+  navbar:
+    left:
+      - text: "About Me"
+        file: aboutme.qmd
+      - text: "Projects"
+        menu:
+          - text: "Starter Analysis Exercise"
+            file: starter-analysis-exercise/products/report/starter-analysis-report.qmd
+          - text: "R Coding Exercise"
+            file: coding-exercise/coding-exercise.qmd
+          - text: "Synthetic Data Exercise"
+            file: data-exercise/data-exercise.qmd
+          - text: "CDC Data Processing Exercise"
+            file: cdc-data-exercise/cdc-data-exercise.qmd
+          - text: "Data Presentation Exercise"
+            file: presentation-exercise/presentation-exercise.qmd
+          - text: "Model Fitting Exercise"
+            file: fitting-exercise/fitting-exercise.qmd
+    right:
+      - icon: github
+        href: https://github.com/cgnorris/connornorris-MADA-portfolio
+format:
+  html:
+    theme: journal
+    highlight: zenburn
+    css: styles.css
+    toc: FALSE

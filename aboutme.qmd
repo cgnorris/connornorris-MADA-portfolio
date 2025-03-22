@@ -1,0 +1,29 @@
+---
+title: "About me"
+---
+
+# Welcome!
+
+My name is Connor Norris, and I am in my second year of the Master of Public Health program at UGA with a concentration in Epidemiology.
+
+![Photo credit: Morgan Wynn (Instagram: [\@morganwynnmedia](https://www.instagram.com/morganwynnmedia/))](images/IMG_0722-01.JPG){fig-align="center" width="300" height="500"}
+
+## Background
+
+I've lived in Georgia all my life, originally growing up in Marietta, GA, and now living in Athens. I attended UGA for my undergraduate years and graduated with a Bachelor's of Science in Microbiology in May 2024. Outside of school, most of my hobbies are music-related. For example, I've played the trombone in the Redcoat Marching Band all five years that I've attended UGA, and I've played trombone for twelve years in total. I also enjoy cooking when I have the time to do so, and one of my goals in 2025 is to venture more into baking!
+
+## Research Interests
+
+My research interests are broadly related to studying bacterial foodborne pathogens in agriculture. In my first semester at UGA, I was introduced to the idea of One Health, which suggests that human health is closely tied to the health of animals and of the environment, and my research experiences have been related to that view. I currently work in the Shariat Lab, which mostly studies *Salmonella* population dynamics in food animal agriculture and in the environment. I, however, work with *Campylobacter*, a similar pathogen that is commonly found in livestock and poultry.
+
+Much of my work in the Shariat Lab is related to genomics and phylogenetics, the studies of the complete genetic content of an organism and of the evolutionary relationships between organisms, respectively. The figure below shows an example of such analysis:
+
+![Citation: Richards, A. K., Kue, S., Norris, C. G., & Shariat, N. W. (2023). Genomic and phenotypic characterization of *Salmonella enterica* serovar Kentucky. *Microbial genomics*, *9*(9), 001089. <https://doi.org/10.1099/mgen.0.001089>](https://www.microbiologyresearch.org/docserver/fulltext/mgen/9/9/mgen001089-f1.gif)
+
+The part on the far left is called a phylogenetic tree. It shows the relatedness of several bacterial isolates from different lineages of _Salmonella enterica_ serovar Kentucky, one kind of _Salmonella_. Such analysis compares the differences between common regions of the genomes of these isolates, and isolates that are closer together on the tree are more closely related to each other evolutionarily. For example, in this tree, the isolates from the Group 1 of serovar Kentucky (in blue) are most closely related to the isolate from Group 4 (in lime green).
+
+## Programming and Biostatistics Experience
+
+Most of my programming skills have been self taught. I started at UGA with a Computer Science minor, but I quickly had to drop it due to scheduling issues. Since then, I've been able to gain programming experience through my research experience, with most of my data analysis work being done in R and with software that's accessed through a command terminal. As far as biostatistics goes, I wasn't able to learn much from my microbiology major. However, I've been fortunate to take multiple biostatisics classes (BIOS 7010, 7020, and 8010) at UGA since starting my masters.
+
+In taking this course, I hope to expand upon the skills I already have with some formal education. I also hope to develop a final product that I could use to demonstrate my skills to potential employers as I begin the job hunt this year.
