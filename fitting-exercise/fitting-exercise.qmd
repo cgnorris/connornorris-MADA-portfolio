@@ -389,3 +389,161 @@ collect_metrics(null_fit_cv)
 ```
 
 With a new seed, the mean RMSE values of the models predicting Y from all predictors and from just dose were about the same. However, the standard errors of both metrics were lower, and the standard error for the model with dose as the only predictor was slightly lower than the standard error of the model with all predictors.
+
+#This section was added by Alexis Gonzalez
+Creating data frames with observed and predicted values
+
+
+```{r}
+dose_preds <- predict(dose_Y_fit, new_data = train) %>%
+  bind_cols(train$Y) %>%
+    mutate(Model = "Model 1")
+colnames(dose_preds) <-c("Predicted", "Observed", "Model")
+```
+
+
+```{r}
+all_preds <- predict(all_Y_fit, new_data = train) %>%
+  bind_cols(train$Y) %>%
+    mutate(Model = "Model 2")
+colnames(all_preds) <-c("Predicted", "Observed", "Model")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+#Null model ( i had issues with null model so I am making the predictions and everything over again)
+null_mod_new <- null_model(mode = "regression") %>%
+  set_engine("parsnip") %>%
+  fit(Y ~ 1, data= train) 
+
+  null_preds <- predict(null_mod_new, new_data = train) %>%
+  bind_cols(train$Y) %>%
+    mutate(Model = "Null")
+colnames(null_preds) <-c("Predicted", "Observed", "Model")
+
+```
+
+#Plotting the values on a scatter plot observed vs predicted
+```{r}
+#combining all into 1 dataframe
+all_models <- bind_rows(dose_preds,all_preds,null_preds)
+```
+
+```{r}
+#PLOT
+ggplot(all_models, aes(x= Observed, y=Predicted, color = Model, shape = Model)) +
+  geom_point(alpha = 0.7, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", color = "black") +
+  labs(title = "Observed vs. Predicted values for Each Model",
+       x = "Observed",
+       y = "Predicted") +
+  theme_minimal() +
+  scale_color_manual(values = c("pink","purple","blue")) +
+  scale_shape_manual(values = c(16,17,18)) +
+  coord_cartesian(xlim = c(0,5000), ylim = c(0,5000)) +
+theme(legend.title = element_blank())
+
+```
+
+#Plotting the residuals for Model 2, the one with all of the variables
+```{r}
+#Calculate the residuals
+Model2 <- all_preds %>%
+  mutate(Residuals = Observed - Predicted)
+
+```
+
+```{r}
+ggplot(Model2, aes(x = Observed, y=Residuals)) +
+  geom_point(color = "blue", alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs. Fitted for Model 2",
+       x = "Fitted Values",
+       y = "Residuals") +
+  theme_minimal()+
+  coord_cartesian(xlim = c(0,5000), ylim = c(-5000,5000))
+
+
+```
+#Model predictions and uncertainty
+```{r}
+set.seed(rngseed)
+```
+
+#Create 100 bootstraps
+```{r}
+bootstrap_samples <- lapply(1:100, function(i) {
+  sample(nrow(train), replace = TRUE)  
+})
+
+```
+#Creating a loop to fit model 2 to each bootstrap
+```{r}
+bootstrap_preds <- vector("list", 100)
+
+for (i in 1:100) {
+  boot_model <- lm(Y ~ . , data = train[bootstrap_samples[[i]], ])
+  predictions <- predict(boot_model, newdata = train)
+  bootstrap_preds[[i]] <- predictions
+}
+predictions_df <- do.call(cbind, bootstrap_preds) 
+
+```
+
+```{r}
+preds <- predictions_df|> apply(2, quantile,  c(0.025, 0.5, 0.975)) |>  t()
+
+```
+#Plot the data
+```{r}
+# 1. Point estimate (mean of the original model predictions)
+point_estimate <- rowMeans(predictions_df)  # mean of predictions from all bootstrap samples
+
+# 2. Median of the bootstrap predictions
+median_preds <- apply(predictions_df, 1, median)  # median across rows
+
+# 3. Confidence intervals (95% CI) for bootstrap predictions
+lower_bound <- apply(predictions_df, 1, function(x) quantile(x, 0.025))  # 2.5 percentile
+upper_bound <- apply(predictions_df, 1, function(x) quantile(x, 0.975))  # 97.5 percentile
+
+```
+
+```{r}
+# Combine observed values, point estimates, and confidence intervals into a data frame
+plot_data <- data.frame(
+  Observed = train$Y,  # Observed values
+  PointEstimate = point_estimate,
+  Median = median_preds,
+  LowerCI = lower_bound,
+  UpperCI = upper_bound
+)
+
+```
+
+
+```{r}
+ggplot(plot_data, aes(x = Observed)) +
+  geom_point(aes(y = PointEstimate), color = "black", shape = 16, size = 2, alpha = 0.7) + 
+  geom_point(aes(y = Median), color = "purple", shape = 17, size = 2, alpha = 0.7) +
+  geom_point(aes(y = LowerCI), color = "pink", shape = 18, size = 2, alpha = 0.7) +
+  geom_point(aes(y = UpperCI), color = "pink", shape = 18, size = 2, alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", color = "black") +
+  labs(title = "Observed vs. Predicted (Bootstrap Confidence Intervals)",
+       x = "Observed",
+       y = "Predicted (Point Estimate, Median, CI)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+  scale_color_manual(values = c("black", "purple", "pink"))
+
+```
+The orginal model for Model 2 and the bootstrapped model look very similar indicating that model is performing consistently. This also suggest that the model if well fit and will adapt well to new data. This data is also fit well to the line, the closer it is to that 45 degree line, the closer the actual and observed values are.
