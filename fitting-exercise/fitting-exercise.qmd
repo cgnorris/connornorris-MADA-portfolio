@@ -392,7 +392,7 @@ With a new seed, the mean RMSE values of the models predicting Y from all predic
 
 ## Part 2
 
-### This section was added by Alexis Gonzalez 
+### This section was added by Alexis Gonzalez
 
 ### Creating data frames with observed and predicted values
 
@@ -581,3 +581,8 @@ ggplot(data = full_preds, aes(x = Y, y = .pred, color = designation)) +
 ```
 
 The model that predicted Y from all available predictors performed decently well and certainly better than a null model or a model where dosage was the only predictor. When comparing the observed values vs. the predicted values from a model in a scatter plot, a perfect fit would result in the points lining up in a straight diagonal line. The plot above shows some variability in the predicted values, but the trend of the plots is in the right direction. The model was built off of a training subset of the overall data, and the model's performance in making predictions off of the rest of the data set had similar patterns as it's performance in making predictions off of the data used to fit the model. This indicates that the model is generalizable and could be used in other similar circumstances.
+
+```{r, echo = FALSE, message = FALSE}
+#Save data including sex to a rds file
+saveRDS(df, file = "clean_mavoglurant.rds")
+```
