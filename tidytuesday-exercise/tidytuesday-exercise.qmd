@@ -3,3 +3,334 @@ title: "tidytuesday-exercise"
 author: "Connor Norris"
 editor: visual
 ---
+
+# Tidy Tuesday: Timely and Effective Care by US State
+
+For this exercise, I will analyze the tidytuesday dataset for the week of April 8, 2025.
+
+```{r, message = FALSE}
+#Load required packages
+library(tidytuesdayR)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(here)
+library(car)
+library(ranger)
+library(xgboost)
+library(broom)
+library(vip)
+library(corrplot)
+```
+
+```{r, message = FALSE}
+#Load data
+tuesdata <- tidytuesdayR::tt_load('2025-04-08')
+care_state <- tuesdata$care_state
+
+#Save data in repo
+write_csv(x = care_state, "care_state.csv")
+```
+
+## Data Wrangling
+
+First, I'll get an overhead view of the data
+
+```{r}
+df <- care_state
+#Data structure
+str(df)
+
+#Summary stats of each variable
+summary(df)
+
+#Get unique measure names
+unique(df$measure_name)
+
+#Skim
+skimr::skim(df)
+
+summary(filter(df, measure_id == "SAFE_USE_OF_OPIOIDS")$score)
+```
+
+The data appears to have a number of different measures related to healthcare, and some of the measures are represented multiple times in individual strata (e.g. the average time patients spend in the ER and the amount of time patients spend in the ER (high)). For this analysis, I'd like to do predictive modeling to see if other outcome scores can predict the percentage of healthcare personnel who are up to date with COVID-19 vaccinations.
+
+```{r}
+#Keep only relevant measures
+relevant_measures <- c("HCP_COVID_19", "IMM_3", "OP_18b", "OP_18c", "OP_22", "OP_23", "OP_29", "OP_31", "SEP_1", "SAFE_USE_OF_OPIOIDS")
+
+#Filter the data to only include measures of interest
+df <- df %>%
+  filter(measure_id %in% relevant_measures)
+
+#Transform to wide format
+df_wide <- df %>%
+  select(state, measure_id, score) %>% #Keep only relevant columns
+  pivot_wider(names_from = measure_id, values_from = score)
+
+#Inspect the new data
+skimr::skim(df_wide)
+head(df_wide)
+```
+
+Now my data is in a much more suitable format for modelling, with each state getting one row, and the scores for each measure of interest being in their own columns. However, the measure OP-31 has much more missing data than the rest, so I will remove this measure.
+
+```{r}
+#Remove OP-31, then remove rows with NA values
+df_wide <- df_wide %>%
+  select(-OP_31) %>%
+  drop_na()
+
+#Save clean data
+write_csv(df_wide, "care_state_clean.csv")
+```
+
+In handling missing values, 4 states/territories were dropped from the data, leaving 52 states/territories.
+
+## Exploratory Data Analysis
+
+```{r}
+#Convert back to long format for facet wrapping
+df_long <- pivot_longer(df_wide, cols = -state, names_to = "Measure", values_to = "Value")
+
+#Create faceted histogram plot
+ggplot(df_long, aes(x = Value)) +
+  geom_histogram(binwidth = 2.5, fill = "royalblue", color = "black") +
+  facet_wrap(~Measure, scales = "free") + #Free scales for each facet
+  labs(
+    title = "Histograms of Measures",
+    x = "Value",
+    y = "Frequency"
+  ) + 
+  theme_minimal()
+
+#Create boxplots for each measure
+ggplot(df_long, aes(x = Measure, y = Value)) +
+  geom_boxplot(fill = "royalblue", color = "black") +
+  facet_wrap(~Measure, scales = "free") +
+  labs(
+    title = "Boxplots of Measures",
+    x = "",
+    y = "Value"
+  ) +
+  theme_minimal()
+
+#Correlation analysis
+cor_matrix <- cor(df_wide[, -1], use = "complete.obs")
+cor_matrix
+corrplot(cor_matrix)
+
+#Scatterplot matrix
+scatterplotMatrix(df_wide[, -1])
+```
+
+Based on the histograms and boxplots, it seems that all of the scores for each measure have unique ranges. It also appears that OP_18b and OP_18c are strongly associated, which will need to be handled in the modelling.
+
+## Modeling
+
+```{r}
+#Set random seed
+rngseed = 1234
+set.seed(1234)
+
+#Data splitting (80% training, 20% testing)
+data_split <- initial_split(df_wide, prop = 0.8)
+train <- training(data_split)
+test <- testing(data_split)
+
+#Cross-validation: 5-fold CV
+set.seed(rngseed)
+cv_folds <- vfold_cv(train, v = 5)
+
+#Define models
+#Linear regression
+lm_model <- linear_reg() %>%
+  set_engine("lm")
+
+#Random forest
+rf_model <- rand_forest(mtry = 3, trees = 500, min_n = 5) %>%
+  set_engine("ranger", importance = "permutation") %>%
+  set_mode("regression")
+
+#XGBoost
+xgb_model <- boost_tree(trees = 1000, tree_depth = 6, learn_rate = 0.1) %>%
+  set_engine("xgboost", importance = "permutation") %>%
+  set_mode("regression")
+
+#Define a recipe for modeling
+model_recipe <- recipe(HCP_COVID_19 ~ ., data = train[, -1]) %>%
+  step_normalize(all_numeric_predictors()) %>% #Standardize numeric predictors 
+  step_interact(terms = ~ OP_18b:OP_18c) #Add interaction term
+
+#Create workflows for each model
+lm_workflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(model_recipe)
+
+rf_workflow <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(model_recipe)
+
+xgb_workflow <- workflow() %>%
+  add_model(xgb_model) %>%
+  add_recipe(model_recipe)
+
+#Fit models using cross-validation
+set.seed(rngseed)
+lm_results <- fit_resamples(lm_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+rf_results <- fit_resamples(rf_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+xgb_results <- fit_resamples(xgb_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+
+#Collect metrics
+lm_metrics <- collect_metrics(lm_results)
+rf_metrics <- collect_metrics(rf_results)
+xgb_metrics <- collect_metrics(xgb_results)
+
+#Compare metrics
+lm_metrics
+rf_metrics
+xgb_metrics
+```
+
+## Variable Selection
+
+```{r}
+set.seed(rngseed)
+#Use a lasso for the linear model
+#Define a lasso model
+lasso_model <- linear_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("glmnet")
+
+#Create a workflow for the lasso
+lasso_workflow <- workflow() %>%
+  add_recipe(model_recipe) %>%
+  add_model(lasso_model)
+
+#Get results
+lasso_results <- tune_grid(
+  lasso_workflow,
+  resamples = cv_folds,
+  grid = 10,
+  metrics = metric_set(rmse, rsq)
+)
+
+#Select the best penalty
+best_lasso <- select_best(lasso_results, metric = "rmse")
+
+#Finalize the workflow with the best penalty
+final_lasso <- finalize_workflow(lasso_workflow, best_lasso)
+
+#Fit the finalized model
+final_lm_fit <- fit(final_lasso, data = train)
+
+#Extract coefficients
+tidy(final_lm_fit$fit$fit) %>% filter(estimate != 0)
+```
+
+```{r}
+#Fit random forest
+rf_fit <- fit(rf_workflow, data = train)
+
+#Extract variable importance
+vip(rf_fit$fit$fit)
+
+#Fit xgb
+xgb_fit <- fit(xgb_workflow, data = train)
+
+#Extract variable importance
+vip(xgb_fit$fit$fit)
+```
+
+Each model had different significant predictors, and I will re-fit each model with those predictors.
+
+## Re-evaluating models using the selected variables
+
+```{r}
+#Define new recipe for the linear regression
+lm_recipe <- recipe(HCP_COVID_19 ~ IMM_3 + OP_18c + OP_22 + OP_23 + OP_29 + SAFE_USE_OF_OPIOIDS+ SEP_1, data = train[, -1]) %>%
+  step_normalize(all_numeric_predictors()) #Standardize numeric predictors 
+
+#Define new recipe for the random forest
+rf_recipe <- recipe(HCP_COVID_19 ~ OP_18b + OP_22 + OP_18c + SEP_1 + OP_29 + OP_23, data = train[, -1]) %>%
+  step_normalize(all_numeric_predictors()) #Standardize numeric predictors
+
+#Define new recipe for the XGBoost
+xgb_recipe <- recipe(HCP_COVID_19 ~ OP_18b + IMM_3 + OP_18c + OP_29 + OP_22 + SAFE_USE_OF_OPIOIDS + OP_23, data = train[,-1]) %>%
+  step_normalize(all_numeric_predictors())
+
+#Reset workflows
+lm_workflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(lm_recipe)
+
+rf_workflow <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(rf_recipe)
+
+xgb_workflow <- workflow() %>%
+  add_model(xgb_model) %>%
+  add_recipe(xgb_recipe)
+
+#Fit models using cross-validation
+set.seed(rngseed)
+lm_results <- fit_resamples(lm_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+rf_results <- fit_resamples(rf_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+xgb_results <- fit_resamples(xgb_workflow, resamples = cv_folds, metrics = metric_set(rmse, rsq))
+
+#Collect metrics
+lm_metrics <- collect_metrics(lm_results)
+rf_metrics <- collect_metrics(rf_results)
+xgb_metrics <- collect_metrics(xgb_results)
+
+#Compare metrics
+lm_metrics
+rf_metrics
+xgb_metrics
+```
+
+```{r}
+#Compare to a null model
+#Define null model
+null_mod <- null_model() %>%
+  set_engine("parsnip") %>%
+  set_mode("regression")
+
+#Make a recipe for the null model
+null_recipe <- recipe(HCP_COVID_19 ~ 1, data = train[, -1])
+
+#Create a workflow for the null model
+null_workflow <- workflow() %>%
+  add_recipe(null_recipe) %>%
+  add_model(null_mod)
+
+#Fit the null model with cross-validation
+set.seed(rngseed)
+null_results <- fit_resamples(
+  null_workflow,
+  resamples = cv_folds,
+  metrics = metric_set(rmse, rsq)
+)
+
+#Show metrics
+collect_metrics(null_results)
+```
+
+The RMSE of the null model was lower than all of the other models used here, so none of the models I've fit are very informative. However, of the three, the random forest performed the best, as it had the lowest RMSE and the highest R-squared. I will try to fit the testing data on the random forest.
+
+```{r}
+
+```
+
+```{r}
+#Predict testing data using the random forest model
+test_preds <- predict(rf_fit, new_data = test) %>%
+  bind_cols(test)
+
+#Evaluate performance on testing data
+test_metrics <- test_preds %>%
+  metrics(truth = HCP_COVID_19, estimate = .pred)
+
+test_metrics
+```
+
+The RMSE was lower using the testing data, but the R-squared was almost zero. Based on this analysis, none of the predictors included in this data set were significant predictors of the percentage of healthcare personnel who are up to date with COVID-19 vaccinations.
